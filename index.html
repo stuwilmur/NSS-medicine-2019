@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <title>NSS</title>
+ 
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+
+<style>
+
+	.label{
+		font-size : 90%;
+		font-family : Open Sans
+	}
+	
+	.title{
+		font-size : 120%;
+		font-family : Open Sans
+	}
+	
+	.tooltip {
+		pointer-events: none;
+	}
+
+</style>
+
+</head>
+<body>
+<!-- Create a div where the graph will take place -->
+<div id="question_viz"></div>
+<div id="provider_viz"></div>
+
+<script>
+
+
+var nestedProvider;
+var nestedQuestion;
+var svgProvider;
+var svgQuestion;
+
+var width = 1000;
+var height = 400;
+var heightProvider = 500;
+
+var PRN = "10007803";
+var Question = "Q01";
+
+var colours = {purple : "#b3669b", grey : "#EBE6E0",darkgrey : "#c9c5c0", black : "#000000", pink : "#F2D2EE"};
+var borderBottom = 100;
+var borderBottomProvider = 200;
+var borderLeft = 100;
+var borderTop = 40;
+var barMargin = 5;
+
+var tooltipQuestion = d3.select("#question_viz")
+  .append("div")
+  .style("opacity", 0)
+  .attr("class", "tooltip")
+  .style("background-color", "white")
+  .style("border", "solid")
+  .style("border-width", "0px")
+  .style("border-radius", "0px")
+  .style("padding", "5px")
+  .style("position", "absolute")
+  .style("font-family", "Open Sans")
+  .style("font-size", "100%")
+  
+var tooltipProvider = d3.select("#provider_viz")
+  .append("div")
+  .style("opacity", 0)
+  .attr("class", "tooltip")
+  .style("background-color", "white")
+  .style("border", "solid")
+  .style("border-width", "0px")
+  .style("border-radius", "0px")
+  .style("padding", "5px")
+  .style("position", "absolute")
+  .style("font-family", "Open Sans")
+  .style("font-size", "100%")
+  
+d3.csv("nss_questions.csv", function(err, qdata)
+{
+	questionMap = qdata.reduce(function(map, obj) {
+    map[obj["Question Number"]] = obj.Question;
+    return map;
+}, {});
+});
+
+d3.csv('nss_medicine_data.csv', function(err, data)
+{	
+	nestedProvider = d3.nest()
+					.key(function(d) {return d.UKPRN;})
+					.key(function(d) {return d['Question Number'];})
+					.entries(data);
+					
+	nestedQuestion = d3.nest()
+					.key(function(d) {return d['Question Number'];})
+					.key(function(d) {return d.UKPRN;})
+					.entries(data);
+	
+	svgQuestion = d3.select("#question_viz")
+					.append("svg")
+					
+	svgQuestion.attr("width", width)
+					.attr("height", height);
+					
+	svgProvider = d3.select("#provider_viz")
+					.append("svg")
+					
+	svgProvider.attr("width", width)
+					.attr("height", heightProvider);
+					
+	svgQuestion.append("text")
+	.text("")
+	.attr("class", "title")
+	.attr("x", borderLeft)
+	.attr("y", borderTop - 5)
+	.attr("fill", colours.black);
+	
+	svgProvider.append("text")
+	.text("")
+	.attr("class", "title")
+	.attr("x", borderLeft)
+	.attr("y", borderTop - 5)
+	.attr("fill", colours.black);
+	
+	update();	
+})
+
+function getKeyValue(d, key, value)
+{
+	return d.values.filter(function(e) {return e.key == key})[0].values[0][value]
+}
+
+function getProvider()
+{
+	return nestedProvider.filter(function(e) {return e.key == PRN})[0].values[0].values[0].Provider;
+}
+
+function getQuestion()
+{
+	return nestedQuestion.filter(function(e) {return e.key == Question})[0].values[0].values[0]["Question Number"];
+}
+
+function compareProviders(a,b)
+{
+	return getKeyValue(b, Question, "Agree") - getKeyValue(a, Question, "Agree");
+}
+
+function barmouseoverQuestion(d,i)
+{	
+	d3.select(this)
+	.transition()
+	.attr('fill', colours.darkgrey);
+	tooltipQuestion.style("opacity", 1)
+}
+
+function barmouseoverProvider(d,i)
+{	
+	d3.select(this)
+	.transition()
+	.attr('fill', colours.darkgrey);
+	tooltipProvider.style("opacity", 1);
+}
+
+function barmouseoutQuestion(d,i)
+{	
+	d3.select(this)
+	.transition()
+	.attr('fill', d.key == Question ? colours.pink : colours.grey);
+	tooltipQuestion.style("opacity", 0);
+}
+
+function barmouseoutProvider(d,i)
+{	
+	d3.select(this)
+	.transition()
+	.attr('fill', d.key == PRN ? colours.pink : colours.grey);
+	tooltipProvider.style("opacity", 0);
+}
+
+function barmousemoveQuestion(d)
+{
+  var text = getKeyValue(d, PRN, "Question Number") 
+			+ "<br/>"
+			+ "<em>" + questionMap[d.key] + "</em>"
+			+ "<br/>Agree: "
+			+ (100 * getKeyValue(d, PRN, "Agree")).toFixed(2) + "%"
+			+ "<br/>Confidence interval: "
+			+ (100 * getKeyValue(d,PRN,"Confidence interval-min")).toFixed(2) + "%"
+			+ " - "
+			+ (100 * getKeyValue(d,PRN,"Confidence interval-max")).toFixed(2) + "%";
+			
+  tooltipQuestion
+  .html(text)
+  .style("left", (d3.mouse(this)[0]+20) + "px")
+  .style("top", (d3.mouse(this)[1]+10) + "px")
+}
+
+function barmousemoveProvider(d)
+{
+  var text = getKeyValue(d, Question, "Provider") 
+			+ "<br/>Agree: "
+			+ (100 * getKeyValue(d, Question, "Agree")).toFixed(2) + "%"
+			+ "<br/>Confidence interval: "
+			+ (100 * getKeyValue(d,Question,"Confidence interval-min")).toFixed(2) + "%"
+			+ " - "
+			+ (100 * getKeyValue(d,Question,"Confidence interval-max")).toFixed(2) + "%";
+   tooltipProvider
+  .html(text)
+  .style("left", (d3.mouse(this)[0]+20) + "px")
+  .style("top", (d3.mouse(this)[1]+10 + height) + "px")
+}
+
+function clickQuestion(d,i)
+{
+	Question = d.key;
+	update();
+}
+
+function clickProvider(d,i)
+{
+	PRN = d.key;
+	update();
+}
+
+
+function update()
+{
+	nestedProvider = nestedProvider.sort(compareProviders);
+
+
+	var chartHeight = height - borderBottom - borderTop;
+	var chartHeightProvider = heightProvider - borderBottomProvider;
+	var chartWidth = width - borderLeft;
+	var scaleQuestion = d3.scaleLinear().domain([0, 100]).range([0, chartHeight]);
+	var scaleProvider = d3.scaleLinear().domain([0, 100]).range([0, chartHeightProvider]);
+	var blobRadius = 5;
+	
+	var barWidthQuestion = chartWidth / nestedQuestion.length - barMargin;
+	var barWidthProvider = chartWidth / nestedProvider.length - barMargin;
+	
+	var  barsQuestion = svgQuestion.selectAll("rect.question");
+		barsQuestion.data(nestedQuestion)
+		.enter()
+		.append("rect")
+		.merge(barsQuestion)
+		.on('mouseover', barmouseoverQuestion)
+		.on('mouseout', barmouseoutQuestion)
+		.on('mousemove', barmousemoveQuestion)
+		.on("click", clickQuestion)
+		.transition()
+		.attr("width", barWidthQuestion)
+		.attr("class","question")
+		.attr("height", function(d) {return scaleQuestion(100 * getKeyValue(d, PRN, "Confidence interval-max") - 100 * getKeyValue(d, PRN, "Confidence interval-min"));})
+		.attr("fill", function(d) {return d.key == Question ? colours.pink : colours.grey;})
+		.attr("y", function(d) { return borderTop + scaleQuestion(100 - 100 * getKeyValue(d, PRN, "Confidence interval-max"));})
+		.attr("x", function(d,i) {return borderLeft + i * (barWidthQuestion + barMargin);})
+
+					
+	var  barsProvider = svgProvider.selectAll("rect.provider");
+		barsProvider.data(nestedProvider)
+		.enter()
+		.append("rect")
+		.merge(barsProvider)
+		.on('mouseover', barmouseoverProvider)
+		.on('mousemove', barmousemoveProvider)
+		.on('mouseout', barmouseoutProvider)
+		.on("click", clickProvider)
+		.transition()
+		.attr("width", barWidthProvider)
+		.attr("class","provider")
+		.attr("height", function(d) {return scaleQuestion(100 * getKeyValue(d, Question, "Confidence interval-max") - 100 * getKeyValue(d, Question, "Confidence interval-min"));})
+		.attr("fill", function(d) {return d.key == PRN ? colours.pink : colours.grey;})
+		.attr("y", function(d) { return borderTop + scaleProvider(100 - 100 * getKeyValue(d, Question, "Confidence interval-max"));})
+		.attr("x", function(d,i) {return borderLeft + i * (barWidthProvider + barMargin);})
+
+					
+	var  blobsQuestion = svgQuestion.selectAll("circle.question");
+		blobsQuestion.data(nestedQuestion)
+		.enter()
+		.append("circle")
+		.merge(blobsQuestion)
+		.transition()
+		.attr("class", "question")
+		.attr("r", blobRadius)
+		.attr("fill", colours.purple)
+		.attr("cy", function(d) { return borderTop + scaleQuestion(100 - 100 * getKeyValue(d, PRN, "Agree"));})
+		.attr("cx", function(d,i) {return borderLeft + barWidthQuestion * .5 + i * (barWidthQuestion + barMargin);});
+					
+	var  blobsProvider = svgProvider.selectAll("circle.provider");
+		blobsProvider.data(nestedProvider)
+		.enter()
+		.append("circle")
+		.merge(blobsProvider)
+		.transition()
+		.attr("class","provider")
+		.attr("r", blobRadius)
+		.attr("fill", colours.purple)
+		.attr("cy", function(d) { return borderTop + scaleProvider(100 - 100 * getKeyValue(d, Question, "Agree"));})
+		.attr("cx", function(d,i) {return borderLeft + barWidthProvider * .5 + i * (barWidthProvider + barMargin);});
+				
+	var textQuestion = svgQuestion.selectAll("text.label");
+		textQuestion.data(nestedQuestion)
+		.enter()
+		.append("text")
+		.merge(textQuestion)
+		.on("click", clickQuestion)
+		.transition()
+		.attr("class", "label")
+		.text(function(d) {return getKeyValue(d, PRN, "Question Number");})
+		.attr("y", chartHeight)
+		.attr("fill", colours.black)
+		.attr("x", -height)
+		.attr("font-weight", function(d) {return d.key == Question ? "bold" : "normal";})
+		.attr("y", function(d,i) {return borderLeft + + barWidthQuestion * .5 + i * (barWidthQuestion + barMargin);})
+		.attr("alignment-baseline", "middle")
+		.attr("transform", "rotate(-90)")
+
+			
+	var textProvider = svgProvider.selectAll("text.label");
+		textProvider.data(nestedProvider)
+		.enter()
+		.append("text")
+		.merge(textProvider)
+		.on("click", clickProvider)
+		.transition()
+		.attr("class", "label")
+		.text(function(d) {return getKeyValue(d, Question, "Provider");})
+		.attr("y", chartHeight)
+		.attr("fill", colours.black)
+		.attr("x", -heightProvider)
+		.attr("font-weight", function(d) {return d.key == PRN ? "bold" : "normal";})
+		.attr("y", function(d,i) {return borderLeft + barWidthProvider * 0.5 + i * (barWidthProvider + barMargin);})
+		.attr("transform", "rotate(-90)")
+		
+	var titleQuestion = svgQuestion.selectAll("text.title");
+	
+	titleQuestion
+	.transition()
+	.text("Performance of " + getProvider() + " across all questions")
+	
+	var titleProvider = svgProvider.selectAll("text.title");
+	
+	titleProvider
+	.transition()
+	.text("Performance of all institutions on question " + getQuestion() + ": " + questionMap[Question]);
+
+	
+}
+
+
+</script>
+</body>
+</html>
