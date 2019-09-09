@@ -11,25 +11,35 @@
 
 <style>
 
+	body{
+		font-family : Open Sans
+	}
+
 	.label{
 		font-size : 90%;
-		font-family : Open Sans
 	}
 	
 	.title{
 		font-size : 120%;
-		font-family : Open Sans
 	}
 	
 	.tooltip {
 		pointer-events: none;
+	}
+	
+	h1{
+		font-size : 150%;
+	}
+	
+	a:visited, a:link {
+		color: black;
 	}
 
 </style>
 
 </head>
 <body>
-<!-- Create a div where the graph will take place -->
+<h1>UK Medical schools NSS data from the <a href = "https://www.officeforstudents.org.uk/advice-and-guidance/student-information-and-data/national-student-survey-nss/get-the-nss-data/">Office for Students</a>.</h1>
 <div id="question_viz"></div>
 <div id="provider_viz"></div>
 
@@ -43,7 +53,7 @@ var svgQuestion;
 
 var width = 1000;
 var height = 400;
-var heightProvider = 500;
+var heightProvider = 450;
 
 var PRN = "10007803";
 var Question = "Q01";
@@ -51,7 +61,7 @@ var Question = "Q01";
 var colours = {purple : "#3D52D5", grey : "#B4C5E4", darkgrey : "#FC7995", black : "#000000"};
 var borderBottom = 100;
 var borderBottomProvider = 200;
-var borderLeft = 100;
+var borderLeft = 50;
 var borderTop = 40;
 var barMargin = 5;
 
