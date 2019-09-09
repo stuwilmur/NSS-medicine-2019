@@ -48,7 +48,7 @@ var heightProvider = 500;
 var PRN = "10007803";
 var Question = "Q01";
 
-var colours = {purple : "#b3669b", grey : "#EBE6E0",darkgrey : "#c9c5c0", black : "#000000", pink : "#F2D2EE"};
+var colours = {purple : "#3D52D5", grey : "#B4C5E4", darkgrey : "#FC7995", black : "#000000"};
 var borderBottom = 100;
 var borderBottomProvider = 200;
 var borderLeft = 100;
@@ -155,7 +155,7 @@ function barmouseoverQuestion(d,i)
 	d3.select(this)
 	.transition()
 	.attr('fill', colours.darkgrey);
-	tooltipQuestion.style("opacity", 1)
+	tooltipQuestion.style("opacity", .8)
 }
 
 function barmouseoverProvider(d,i)
@@ -163,14 +163,14 @@ function barmouseoverProvider(d,i)
 	d3.select(this)
 	.transition()
 	.attr('fill', colours.darkgrey);
-	tooltipProvider.style("opacity", 1);
+	tooltipProvider.style("opacity", .8);
 }
 
 function barmouseoutQuestion(d,i)
 {	
 	d3.select(this)
 	.transition()
-	.attr('fill', d.key == Question ? colours.pink : colours.grey);
+	.attr('fill', d.key == Question ? colours.darkgrey : colours.grey);
 	tooltipQuestion.style("opacity", 0);
 }
 
@@ -178,7 +178,7 @@ function barmouseoutProvider(d,i)
 {	
 	d3.select(this)
 	.transition()
-	.attr('fill', d.key == PRN ? colours.pink : colours.grey);
+	.attr('fill', d.key == PRN ? colours.darkgrey : colours.grey);
 	tooltipProvider.style("opacity", 0);
 }
 
@@ -187,8 +187,8 @@ function barmousemoveQuestion(d)
   var text = getKeyValue(d, PRN, "Question Number") 
 			+ "<br/>"
 			+ "<em>" + questionMap[d.key] + "</em>"
-			+ "<br/>Agree: "
-			+ (100 * getKeyValue(d, PRN, "Agree")).toFixed(2) + "%"
+			+ "<br/><strong>Agree: "
+			+ (100 * getKeyValue(d, PRN, "Agree")).toFixed(2) + "%</strong>"
 			+ "<br/>Confidence interval: "
 			+ (100 * getKeyValue(d,PRN,"Confidence interval-min")).toFixed(2) + "%"
 			+ " - "
@@ -203,8 +203,8 @@ function barmousemoveQuestion(d)
 function barmousemoveProvider(d)
 {
   var text = getKeyValue(d, Question, "Provider") 
-			+ "<br/>Agree: "
-			+ (100 * getKeyValue(d, Question, "Agree")).toFixed(2) + "%"
+			+ "<br/><strong>Agree: "
+			+ (100 * getKeyValue(d, Question, "Agree")).toFixed(2) + "%</strong>"
 			+ "<br/>Confidence interval: "
 			+ (100 * getKeyValue(d,Question,"Confidence interval-min")).toFixed(2) + "%"
 			+ " - "
@@ -256,7 +256,7 @@ function update()
 		.attr("width", barWidthQuestion)
 		.attr("class","question")
 		.attr("height", function(d) {return scaleQuestion(100 * getKeyValue(d, PRN, "Confidence interval-max") - 100 * getKeyValue(d, PRN, "Confidence interval-min"));})
-		.attr("fill", function(d) {return d.key == Question ? colours.pink : colours.grey;})
+		.attr("fill", function(d) {return d.key == Question ? colours.darkgrey : colours.grey;})
 		.attr("y", function(d) { return borderTop + scaleQuestion(100 - 100 * getKeyValue(d, PRN, "Confidence interval-max"));})
 		.attr("x", function(d,i) {return borderLeft + i * (barWidthQuestion + barMargin);})
 
@@ -274,7 +274,7 @@ function update()
 		.attr("width", barWidthProvider)
 		.attr("class","provider")
 		.attr("height", function(d) {return scaleQuestion(100 * getKeyValue(d, Question, "Confidence interval-max") - 100 * getKeyValue(d, Question, "Confidence interval-min"));})
-		.attr("fill", function(d) {return d.key == PRN ? colours.pink : colours.grey;})
+		.attr("fill", function(d) {return d.key == PRN ? colours.darkgrey : colours.grey;})
 		.attr("y", function(d) { return borderTop + scaleProvider(100 - 100 * getKeyValue(d, Question, "Confidence interval-max"));})
 		.attr("x", function(d,i) {return borderLeft + i * (barWidthProvider + barMargin);})
 
@@ -284,6 +284,7 @@ function update()
 		.enter()
 		.append("circle")
 		.merge(blobsQuestion)
+		.on("click", clickProvider)
 		.transition()
 		.attr("class", "question")
 		.attr("r", blobRadius)
@@ -296,6 +297,7 @@ function update()
 		.enter()
 		.append("circle")
 		.merge(blobsProvider)
+		.on("click", clickProvider)
 		.transition()
 		.attr("class","provider")
 		.attr("r", blobRadius)
