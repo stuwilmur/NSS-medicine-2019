@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
 <!-- Load d3.js -->
 <script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 
 
 <style>
@@ -64,11 +65,15 @@ var borderBottomProvider = 200;
 var borderLeft = 50;
 var borderTop = 40;
 var barMargin = 5;
+var likertHeight = 200;
+var likertWidth = 400;
+var innerRadius = 15;
 
 var tooltipQuestion = d3.select("#question_viz")
   .append("div")
   .style("opacity", 0)
   .attr("class", "tooltip")
+  .attr("id", "tooltipQuestion")
   .style("background-color", "white")
   .style("border", "solid")
   .style("border-width", "0px")
@@ -78,10 +83,21 @@ var tooltipQuestion = d3.select("#question_viz")
   .style("font-family", "Open Sans")
   .style("font-size", "100%")
   
+var tooltipQuestionText = d3.select("#tooltipQuestion")
+						  .append("div");
+  
+var tooltipQuestionSvg = d3.select("#tooltipQuestion")
+						.append("svg")
+						.attr("width", likertWidth)
+						.attr("height", likertHeight)
+						.append("g")
+						
+  
 var tooltipProvider = d3.select("#provider_viz")
   .append("div")
   .style("opacity", 0)
   .attr("class", "tooltip")
+  .attr("id", "tooltipProvider")
   .style("background-color", "white")
   .style("border", "solid")
   .style("border-width", "0px")
@@ -90,6 +106,18 @@ var tooltipProvider = d3.select("#provider_viz")
   .style("position", "absolute")
   .style("font-family", "Open Sans")
   .style("font-size", "100%")
+  
+var likertScale = d3.scaleLinear().domain([0, 1]).range([0, likertHeight]);
+  
+var tooltipProviderText = d3.select("#tooltipProvider")
+						  .append("div");
+  
+var tooltipProviderSvg = d3.select("#tooltipProvider")
+						.append("svg")
+						.attr("width", likertWidth)
+						.attr("height", likertHeight)
+						.append("g")
+						
   
 d3.csv("nss_questions.csv", function(err, qdata)
 {
@@ -192,6 +220,52 @@ function barmouseoutProvider(d,i)
 	tooltipProvider.style("opacity", 0);
 }
 
+function drawBar(svg, d, key)
+{
+	var likertData = [
+					{ key : 1, value : +getKeyValue(d, key, "Answered 1")},
+					{ key : 2, value : +getKeyValue(d, key, "Answered 2")},
+					{ key : 3, value : +getKeyValue(d, key, "Answered 3")},
+					{ key : 4, value : +getKeyValue(d, key, "Answered 4")},
+					{ key : 5, value : +getKeyValue(d, key, "Answered 5")},
+					]
+
+	var color = d3.scaleOrdinal()
+	.domain(likertData)
+	.range(d3.schemeSet2)
+	
+	var bars = 	svg.selectAll('.likert');
+
+	bars
+	.data(likertData)
+	.enter()
+	.append('rect')
+	.merge(bars)
+	.attr('fill', function(d){ return color(d.key) })
+	.attr('class','likert')
+	.attr("stroke", "black")
+	.style("stroke-width", "0px")
+	.attr("width", likertWidth / 5)
+	.attr("height", function(d) {return likertScale(d.value);})
+	.attr("x", function(d,i) {return i * likertWidth / 5;})
+	.attr("y", function(d){return likertScale(1 - d.value)})
+	.style("opacity", 0.9)	
+	
+	var barsText = 	svg.selectAll('.likerttext');
+
+	barsText
+	.data(likertData)
+	.enter()
+	.append('text')
+	.merge(barsText)
+	.attr('class','likerttext')
+	.attr("x", function(d,i) {return i * likertWidth / 5;})
+	.attr("y", 20)
+	.text(function(d,i) {return d.key + ": " + (d.value * 100).toFixed(1) + "%" })
+	.attr("font-size", "100%")
+	.style("opacity", 0.9)	
+}
+
 function barmousemoveQuestion(d)
 {
   var text = getKeyValue(d, PRN, "Question Number") 
@@ -204,8 +278,13 @@ function barmousemoveQuestion(d)
 			+ " - "
 			+ (100 * getKeyValue(d,PRN,"Confidence interval-max")).toFixed(2) + "%";
 			
-  tooltipQuestion
+  tooltipQuestionText
   .html(text)
+  
+  drawBar(tooltipQuestionSvg, d, PRN);
+	
+  
+  tooltipQuestion
   .style("left", (d3.mouse(this)[0]+20) + "px")
   .style("top", (d3.mouse(this)[1]+10) + "px")
 }
@@ -219,8 +298,13 @@ function barmousemoveProvider(d)
 			+ (100 * getKeyValue(d,Question,"Confidence interval-min")).toFixed(2) + "%"
 			+ " - "
 			+ (100 * getKeyValue(d,Question,"Confidence interval-max")).toFixed(2) + "%";
-   tooltipProvider
-  .html(text)
+   
+  tooltipProvider
+  tooltipProviderText.html(text)
+  
+    drawBar(tooltipProviderSvg, d, Question);
+  
+  tooltipProvider
   .style("left", (d3.mouse(this)[0]+20) + "px")
   .style("top", (d3.mouse(this)[1]+10 + height) + "px")
 }
