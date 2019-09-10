@@ -46,6 +46,7 @@
 
 <script>
 
+var lineData = [40,50,60,70,80,90,100];
 
 var nestedProvider;
 var nestedQuestion;
@@ -59,13 +60,13 @@ var heightProvider = 450;
 var PRN = "10007803";
 var Question = "Q01";
 
-var colours = {purple : "#3D52D5", grey : "#B4C5E4", darkgrey : "#FC7995", black : "#000000"};
+var colours = {purple : "#3D52D5", grey : "#B4C5E4", darkgrey : "#FC7995", lightgrey : "#808082", black : "#000000"};
 var borderBottom = 100;
 var borderBottomProvider = 200;
 var borderLeft = 50;
 var borderTop = 40;
 var barMargin = 5;
-var likertHeight = 200;
+var likertHeight = 250;
 var likertWidth = 400;
 var innerRadius = 15;
 
@@ -107,7 +108,9 @@ var tooltipProvider = d3.select("#provider_viz")
   .style("font-family", "Open Sans")
   .style("font-size", "100%")
   
-var likertScale = d3.scaleLinear().domain([0, 1]).range([0, likertHeight]);
+var likertScaleBorder = 20;
+var likertScale = d3.scaleLinear().domain([0, 100]).range([0, likertHeight - likertScaleBorder]);
+var likertScaleRev = d3.scaleLinear().domain([100, 0]).range([0, likertHeight - likertScaleBorder]);
   
 var tooltipProviderText = d3.select("#tooltipProvider")
 						  .append("div");
@@ -193,7 +196,7 @@ function barmouseoverQuestion(d,i)
 	d3.select(this)
 	.transition()
 	.attr('fill', colours.darkgrey);
-	tooltipQuestion.style("opacity", .8)
+	tooltipQuestion.style("opacity", .9)
 }
 
 function barmouseoverProvider(d,i)
@@ -201,7 +204,7 @@ function barmouseoverProvider(d,i)
 	d3.select(this)
 	.transition()
 	.attr('fill', colours.darkgrey);
-	tooltipProvider.style("opacity", .8);
+	tooltipProvider.style("opacity", .9);
 }
 
 function barmouseoutQuestion(d,i)
@@ -246,10 +249,10 @@ function drawBar(svg, d, key)
 	.attr("stroke", "black")
 	.style("stroke-width", "0px")
 	.attr("width", likertWidth / 5)
-	.attr("height", function(d) {return likertScale(d.value);})
+	.attr("height", function(d) {return likertScale(d.value * 100);})
 	.attr("x", function(d,i) {return i * likertWidth / 5;})
-	.attr("y", function(d){return likertScale(1 - d.value)})
-	.style("opacity", 0.9)	
+	.attr("y", function(d){return likertScale(100 - 100 * d.value) - likertScaleBorder})
+	.style("opacity", 1)	
 	
 	var barsText = 	svg.selectAll('.likerttext');
 
@@ -263,7 +266,38 @@ function drawBar(svg, d, key)
 	.attr("y", 20)
 	.text(function(d,i) {return d.key + ": " + (d.value * 100).toFixed(1) + "%" })
 	.attr("font-size", "100%")
-	.style("opacity", 0.9)	
+	.style("opacity", 1)	
+	
+	/*var  barsLines = svg.selectAll("line");
+	barsLines.data(lineData)
+	.enter()
+	.append("line")
+	.merge(barsLines)
+	.attr("x1", likertScaleBorder)
+	.attr("x2", likertWidth + likertScaleBorder)
+	.attr("y1", function(d) {return likertScale(100 - d) - likertScaleBorder;})
+	.attr("y2", function(d) {return likertScale(100 - d) - likertScaleBorder;})
+	.attr("stroke", colours.lightgrey)
+	.attr("stroke-width", .5);
+	
+	var barsLinesText = svg.selectAll(".linestext");
+	
+	barsText
+	.data(lineData)
+	.enter()
+	.append("text")
+	.attr("class", "linestext")
+	.attr("x", likertScaleBorder)
+	.attr("y", function(d) {return likertScale(100 - d) - likertScaleBorder;})
+	.text(function(d) {return d + "%";})
+	.attr("font-size", "100%")
+	.attr("fill", colours.lightgrey)
+	.style("opacity", 1)	
+	
+	svg//.select(".yaxis")
+	.append("g")
+	.attr("transform", "translate(25," + -likertScaleBorder + ")")  
+	.call(d3.axisLeft(likertScaleRev));*/
 }
 
 function barmousemoveQuestion(d)
@@ -332,6 +366,8 @@ function update()
 	var chartWidth = width - borderLeft;
 	var scaleQuestion = d3.scaleLinear().domain([0, 100]).range([0, chartHeight]);
 	var scaleProvider = d3.scaleLinear().domain([0, 100]).range([0, chartHeightProvider]);
+	var scaleQuestionRev = d3.scaleLinear().domain([100, 0]).range([0, chartHeight]);
+	var scaleProviderRev = d3.scaleLinear().domain([100, 0]).range([0, chartHeightProvider]);
 	var blobRadius = 5;
 	
 	var barWidthQuestion = chartWidth / nestedQuestion.length - barMargin;
@@ -445,6 +481,67 @@ function update()
 	.transition()
 	.text("Performance of all institutions on question " + getQuestion() + ": " + questionMap[Question]);
 
+	/*svgQuestion//.select(".yaxis")
+	.append("g")
+	.attr("transform", "translate("+borderLeft + ", " + borderTop+")")  
+	.call(d3.axisLeft(scaleQuestionRev));
+	
+	svgProvider//.select(".yaxis")
+	.append("g")
+	.attr("transform", "translate("+borderLeft + ", " + borderTop+")")   
+	.call(d3.axisLeft(scaleProviderRev));*/
+	
+	var  linesQuestion = svgQuestion.selectAll("line");
+	linesQuestion.data(lineData)
+	.enter()
+	.append("line")
+	.merge(linesQuestion)
+	.attr("x1", borderLeft)
+	.attr("x2", chartWidth + borderLeft)
+	.attr("y1", function(d) {return borderTop + scaleQuestion(100 - d);})
+	.attr("y2", function(d) {return borderTop + scaleQuestion(100 - d);})
+	.attr("stroke", colours.lightgrey)
+	.attr("stroke-width", .5);
+	
+	var  linesProvider = svgProvider.selectAll("line");
+	linesProvider.data(lineData)
+	.enter()
+	.append("line")
+	.merge(linesProvider)
+	.attr("x1", borderLeft)
+	.attr("x2", chartWidth + borderLeft)
+	.attr("y1", function(d) {return borderTop + scaleProvider(100 - d);})
+	.attr("y2", function(d) {return borderTop + scaleProvider(100 - d);})
+	.attr("stroke", colours.lightgrey)
+	.attr("stroke-width", .5);
+	
+	var linestTextQuestion = svgQuestion.selectAll(".linestext");
+	
+	linestTextQuestion
+	.data(lineData)
+	.enter()
+	.append("text")
+	.attr("class", "linestext")
+	.attr("x", 0)
+	.attr("y", function(d) {return borderTop + scaleQuestion(100 - d);})
+	.text(function(d) {return d + "%";})
+	.attr("font-size", "100%")
+	.attr("fill", colours.lightgrey)
+	.style("opacity", 1)	
+	
+	var linestTextProvider = svgProvider.selectAll(".linestext");
+	
+	linestTextProvider
+	.data(lineData)
+	.enter()
+	.append("text")
+	.attr("class", "linestext")
+	.attr("x", 0)
+	.attr("y", function(d) {return borderTop + scaleProvider(100 - d);})
+	.text(function(d) {return d + "%";})
+	.attr("font-size", "100%")
+	.attr("fill", colours.lightgrey)
+	.style("opacity", 1)	
 	
 }
 
